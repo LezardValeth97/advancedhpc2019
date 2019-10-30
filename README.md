@@ -12,6 +12,6 @@ Students are expected to:
 Student Info
 =======================
 
-* Name: MyName
-* ID: *YourIdHere*
+* Name: KieuQuocViet
+* ID: ICT.M8.003
 
