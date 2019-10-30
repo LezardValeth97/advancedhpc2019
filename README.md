@@ -13,5 +13,9 @@ Student Info
 =======================
 
 * Name: MyName
-* ID: *YourIdHere*
+* Key:
+
+```
+ssh-rsa ThisIsasAMpleKey
+```
 
