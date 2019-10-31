@@ -1,0 +1,59 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+
+\title{Report.0.investigate.tex}
+\author{Kieu Quoc Viet }
+\date{October 2019}
+
+\begin{document}
+
+\maketitle
+
+\begin{enumerate}
+    \item How you implement the conversion?
+    Add \textbf{#pragma omp parallel for schedule(dynamic)} or \textbf{#pragma omp single}, etc before the loop.
+    \begin{verbatim}
+        #pragma omp master
+   
+        for (int j = 0; j < 100; j++) {     // let's do it 100 times, otherwise it's too fast!
+            for (int i = 0; i < pixelCount; i++) {
+            outputImage[i * 3] = (char) (((int) inputImage->buffer[i * 3] + (int) inputImage->buffer[i * 3 + 1] +
+                                          (int) inputImage->buffer[i * 3 + 2]) / 3);
+            outputImage[i * 3 + 1] = outputImage[i * 3];
+            outputImage[i * 3 + 2] = outputImage[i * 3];
+        }
+    }
+    \end{verbatim}
+    
+    \item{What’s the speedup?}
+    The program's duration is faster than sequetial one using parallel computing.
+    \begin{itemize}
+        \item Using \textbf{#pragma omp single}
+        \begin{verbatim}
+            USTH ICT Master 2018, Advanced Programming for HPC.
+            Warming up...
+            Starting labwork 1
+            labwork 1 CPU ellapsed 3363.8ms
+            labwork 1 ellapsed 201.9ms
+        \end{verbatim}
+        
+        \item Using \textbf{#pragma omp parallel for schedule(dynamic)}
+        \begin{verbatim}
+            USTH ICT Master 2018, Advanced Programming for HPC.
+            Warming up...
+            Starting labwork 1
+            labwork 1 CPU ellapsed 3141.4ms
+            labwork 1 ellapsed 49.0ms
+        \end{verbatim}
+        
+        \item Using \textbf{#pragma omp master}
+        \begin{verbatim}
+        USTH ICT Master 2018, Advanced Programming for HPC.
+        Warming up...
+        Starting labwork 1
+        labwork 1 CPU ellapsed 3167.9ms
+        labwork 1 OpenMP ellapsed 2933.3ms
+        labwork 1 ellapsed 3026.1ms
+        \end{verbatim}
+    \end{itemize}
+\end{document}
