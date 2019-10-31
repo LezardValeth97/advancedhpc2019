@@ -1,0 +1,1 @@
+/usr/bin/g++-6    -fopenmp   CMakeFiles/labwork.dir/src/timer.cpp.o CMakeFiles/labwork.dir/src/labwork_generated_jpegloader.cu.o CMakeFiles/labwork.dir/src/labwork_generated_labwork.cu.o  -o labwork -rdynamic /usr/local/cuda/lib64/libcudart_static.a -lpthread -ldl -lrt -ljpeg 

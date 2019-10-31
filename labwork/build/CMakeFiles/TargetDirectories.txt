@@ -1,0 +1,3 @@
+/storage/vietkq/advancedhpc2019/labwork/build/CMakeFiles/rebuild_cache.dir
+/storage/vietkq/advancedhpc2019/labwork/build/CMakeFiles/edit_cache.dir
+/storage/vietkq/advancedhpc2019/labwork/build/CMakeFiles/labwork.dir
