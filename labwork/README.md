@@ -49,3 +49,13 @@ To test, you will also need a NVIDIA GPU with proper driver installed.
 Check if you have it: ```nvidia-smi```
 
 To run your labwork: ```./labwork```
+
+Extras
+---------------
+
+If you have problems of compatibility between GCC 8+ with CUDA 10.0, try installing older version of gcc (e.g. 6) and use these before ```cmake ..``
+
+```
+export CC=/usr/bin/gcc-6
+export CXX=/usr/bin/g++-6
+```
