@@ -1,0 +1,42 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+
+\title{Report.0.investigate.tex}
+\author{Kieu Quoc Viet }
+\date{October 2019}
+
+\begin{document}
+
+\maketitle
+
+\begin{enumerate}
+    \item How do you compile the labwork project?
+    Following the bellow command line:
+    \begin{verbatim}
+        mkdir build
+        cd build
+        cmake ..
+        make -j    
+    \end{verbatim}
+    
+    \item What do you need to compile the project?
+        \begin{itemize}
+            \item OS: GNU/Linux or macOS
+            \item CUDA SDK 7+.
+            \item Compiler: nvcc (bundled with CUDA SDK) and gcc 4.8+ (for C++11 standard support).
+            \item libjpeg to encode/decode JPEG files.
+        \end{itemize}
+        
+    \item Write command and output for your compilation
+    \begin{verbatim}
+        $ ./labwork 1 ../data/eiffel.jpg 
+        USTH ICT Master 2018, Advanced Programming for HPC.
+        Warming up...
+        Starting labwork 1
+        labwork 1 CPU ellapsed 3224.1ms
+        labwork 1 ellapsed 64.6ms
+    \end{verbatim}
+    
+\end{enumerate}
+
+\end{document}
