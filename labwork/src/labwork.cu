@@ -2,6 +2,7 @@
 #include <include/labwork.h>
 #include <cuda_runtime_api.h>
 #include <omp.h>
+#include <time.h>
 
 #define ACTIVE_THREADS 4
 
@@ -164,24 +165,46 @@ void Labwork::labwork2_GPU() {
         printf("Number of multiprocessors: %d\n", prop.multiProcessorCount);
         printf("Warp Size: %d\n", prop.warpSize);
         printf("Memory Clock Rate: %d\n", prop.memoryClockRate);
-        printf("Memory Bus Width (bits): %d\n", prop.memoryBusWidth);
+        printf("Memory Bus Width (bits): %d\nDevices", prop.memoryBusWidth);
         printf("Peak Memory Bandwidth (GB/s): %f\n\n", 2.0*prop.memoryClockRate*(prop.memoryBusWidth/8)/1.0e6);
     }
 
 }
 
+// Write a grayscale kernel
+__global__ void grayscale(uchar3 *input, uchar3 *output) {
+    // this will execute in a device core
+    int tid = threadIdx.x + blockIdx.x * blockDim.x;
+    output[tid].x = (input[tid].x + input[tid].y +input[tid].z) / 3;
+    output[tid].z = output[tid].y = output[tid].x;
+}
+
 void Labwork::labwork3_GPU() {
     // Calculate number of pixels
+    int pixelCount = inputImage->width * inputImage->height;
+ 
+    // Allocate CUDA memory
+    uchar3 *devInput;
+    uchar3 *devOutput;
+    cudaMalloc(&devInput, pixelCount *sizeof(uchar3));
+    cudaMalloc(&devOutput, pixelCount *sizeof(uchar3));
 
-    // Allocate CUDA memory    
+    // Copy InputImage from CPU (host) to GPU (device)
+    cudaMemcpy(devInput, inputImage->buffer, pixelCount * sizeof(uchar3),cudaMemcpyHostToDevice);
 
-    // Copy CUDA Memory from CPU to GPU
-
-    // Processing
+    // Processing : launch the kernel
+    int blockSize = 1024;
+    int numBlock = pixelCount / blockSize;  
+    grayscale<<<numBlock, blockSize>>>(devInput, devOutput);
 
     // Copy CUDA Memory from GPU to CPU
+    // allocate memory for the output on the host
+    outputImage = static_cast<char *>(malloc(pixelCount * sizeof(uchar3)));  
+    cudaMemcpy(outputImage, devOutput, pixelCount * sizeof(uchar3),cudaMemcpyDeviceToHost);   
 
     // Cleaning
+    cudaFree(devInput);
+    cudaFree(devOutput);
 }
 
 void Labwork::labwork4_GPU() {
