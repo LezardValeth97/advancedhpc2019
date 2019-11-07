@@ -54,10 +54,10 @@ int main(int argc, char **argv) {
             labwork.saveOutputImage("labwork4-gpu-out.jpg");
             break;
         case 5:
-            //labwork.labwork5_CPU();
-            //labwork.saveOutputImage("labwork5-cpu-out.jpg");
-            labwork.labwork5_GPU();
-            labwork.saveOutputImage("labwork5-gpu-out.jpg");
+            labwork.labwork5_CPU();
+            labwork.saveOutputImage("labwork5-cpu-out.jpg");
+            // labwork.labwork5_GPU();
+            // labwork.saveOutputImage("labwork5-gpu-out.jpg");
             break;
         case 6:
             labwork.labwork6_GPU();
@@ -207,52 +207,122 @@ void Labwork::labwork3_GPU() {
     cudaFree(devOutput);
 }
 
-// Write a grayscale kernel
-__global__ void grayscaleVer2D(uchar3 *input, uchar3 *output, int width, int height) {
-    // this will execute in a device core
-    int tidx = threadIdx.x + blockIdx.x * blockDim.x;
-    if (tidx >= width) return;
-    int tidy = threadIdx.y + blockIdx.y * blockDim.y;
-    if (tidy >= height) return;
 
-    int tid = tidx + tidy * width;
-    output[tid].x = (input[tid].x + input[tid].y +input[tid].z) / 3;
+__global__ void grayscaleVer2D(uchar3* input, uchar3* output, int imageWidth, int imageHeight){
+    int tidx = threadIdx.x + blockIdx.x * blockDim.x;
+    int tidy = threadIdx.y + blockIdx.y * blockDim.y;
+    if(tidx > imageWidth || tidy > imageHeight) return;
+    int tid = tidx + tidy * imageWidth;
+    output[tid].x = (input[tid].x + input[tid].y + input[tid].z) / 3;
     output[tid].z = output[tid].y = output[tid].x;
 }
 
-void Labwork::labwork4_GPU() {
+void Labwork::labwork4_GPU(){
     // Calculate number of pixels
     int pixelCount = inputImage->width * inputImage->height;
+
  
-    // Allocate CUDA memory
+    // // Allocate CUDA memory
     uchar3 *devInput;
     uchar3 *devOutput;
     cudaMalloc(&devInput, pixelCount *sizeof(uchar3));
     cudaMalloc(&devOutput, pixelCount *sizeof(uchar3));
 
-    // Copy InputImage from CPU (host) to GPU (device)
+    // // Copy InputImage from CPU (host) to GPU (device)
     cudaMemcpy(devInput, inputImage->buffer, pixelCount * sizeof(uchar3),cudaMemcpyHostToDevice);
 
-    // Processing : launch the kernel
-    // int blockSize = 1024;
-    // int numBlock = pixelCount / blockSize;  
-    // grayscale<<<numBlock, blockSize>>>(devInput, devOutput);
+    // // Processing : launch the kernel
+    // // int blockSize = 1024;
+    // // int numBlock = pixelCount / blockSize;  
+    // // grayscale<<<numBlock, blockSize>>>(devInput, devOutput);
     dim3 blockSize = dim3(32, 32);
-    //dim3 gridSize = dim3(8, 8);
+    // //dim3 gridSize = dim3(8, 8);
     dim3 gridSize = dim3((inputImage->width + blockSize.x -1) / blockSize.x, (inputImage->height + blockSize.y -1) / blockSize.y);
     grayscaleVer2D<<<gridSize, blockSize>>>(devInput, devOutput, inputImage->width, inputImage->height);
 
-    // Copy CUDA Memory from GPU to CPU
-    // allocate memory for the output on the host
+    // // Copy CUDA Memory from GPU to CPU
+    // // allocate memory for the output on the host
     outputImage = static_cast<char *>(malloc(pixelCount * sizeof(uchar3)));  
     cudaMemcpy(outputImage, devOutput, pixelCount * sizeof(uchar3),cudaMemcpyDeviceToHost);   
 
-    // Cleaning
+    // // Cleaning
     cudaFree(devInput);
     cudaFree(devOutput);
 }
 
+
+void Labwork::labwork5_CPU() {
+    int kernel[] = {0, 0, 1, 2, 1, 0, 0,
+                    0, 3, 13, 22, 13, 3, 0,
+                    1, 13, 59, 97, 59, 13, 1,
+                    2, 22, 97, 159, 97, 22, 2,
+                    1, 13, 59, 97, 59, 13, 1,
+                    0, 3, 13, 22, 13, 3, 0,
+                    0, 0, 1, 2, 1, 0, 0};
+
+    // Calculate number of pixels
+    int pixelCount = inputImage->width * inputImage->height;
+    outputImage = static_cast<char *>(malloc(pixelCount * sizeof(uchar3)));
+    for(int rows = 0; rows < inputImage->height; rows++) {
+        for (int columns = 0; columns < inputImage->width; columns++){
+            int sum = 0; // sum is for normalization
+            int constant = 0;
+            for(int y=-3; y <= 3; y++){
+                for(int x=-3; x <= 3; x++){
+                    int tempx = columns + x;
+                    int tempy = rows + y;
+                    if( tempx < 0 || tempx >= inputImage->width || tempy < 0 || tempy >= inputImage->height) continue;
+                    int tid = tempx + tempy*inputImage->width;
+                    char pixelValue = (char) (((int) inputImage->buffer[tid * 3] + (int) inputImage->buffer[tid * 3 + 1] +
+                                          (int) inputImage->buffer[tid * 3 + 2]) / 3);
+                    int coefficient = kernel[(y+3)*7+x+3];
+                    sum += pixelValue*coefficient;
+                    constant += coefficient;
+                }
+            }
+            sum /= constant;
+            int positionOut = rows*inputImage->width + columns;
+            if(positionOut < pixelCount){
+                outputImage[positionOut * 3] = outputImage[positionOut * 3 + 1] = outputImage[positionOut * 3 + 2] = sum;
+            }
+        }
+    }
+
+}
+
+
 void Labwork::labwork5_GPU() {
+
+    // Calculate number of pixels
+    // int pixelCount = inputImage->width * inputImage->height;
+
+ 
+    // // // Allocate CUDA memory
+    // uchar3 *devInput;
+    // uchar3 *devOutput;
+    // cudaMalloc(&devInput, pixelCount *sizeof(uchar3));
+    // cudaMalloc(&devOutput, pixelCount *sizeof(uchar3));
+
+    // // // Copy InputImage from CPU (host) to GPU (device)
+    // cudaMemcpy(devInput, inputImage->buffer, pixelCount * sizeof(uchar3),cudaMemcpyHostToDevice);
+
+    // // // Processing : launch the kernel
+    // // // int blockSize = 1024;
+    // // // int numBlock = pixelCount / blockSize;  
+    // // // grayscale<<<numBlock, blockSize>>>(devInput, devOutput);
+    // dim3 blockSize = dim3(32, 32);
+    // // //dim3 gridSize = dim3(8, 8);
+    // dim3 gridSize = dim3((inputImage->width + blockSize.x -1) / blockSize.x, (inputImage->height + blockSize.y -1) / blockSize.y);
+    // grayscaleVer2D<<<gridSize, blockSize>>>(devInput, devOutput, inputImage->width, inputImage->height);
+
+    // // // Copy CUDA Memory from GPU to CPU
+    // // // allocate memory for the output on the host
+    // outputImage = static_cast<char *>(malloc(pixelCount * sizeof(uchar3)));  
+    // cudaMemcpy(outputImage, devOutput, pixelCount * sizeof(uchar3),cudaMemcpyDeviceToHost);   
+
+    // // // Cleaning
+    // cudaFree(devInput);
+    // cudaFree(devOutput);
 }
 
 void Labwork::labwork6_GPU() {
@@ -271,28 +341,4 @@ void Labwork::labwork9_GPU() {
 void Labwork::labwork10_GPU(){
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    
