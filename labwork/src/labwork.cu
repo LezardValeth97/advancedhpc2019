@@ -214,7 +214,7 @@ void Labwork::labwork3_GPU() {
 __global__ void grayscaleVer2D(uchar3* input, uchar3* output, int imageWidth, int imageHeight){
     int tidx = threadIdx.x + blockIdx.x * blockDim.x;
     int tidy = threadIdx.y + blockIdx.y * blockDim.y;
-    if(tidx > imageWidth || tidy > imageHeight) return;
+    if(tidx >= imageWidth || tidy >= imageHeight) return;
     int tid = tidx + tidy * imageWidth;
     output[tid].x = (input[tid].x + input[tid].y + input[tid].z) / 3;
     output[tid].z = output[tid].y = output[tid].x;
@@ -373,8 +373,113 @@ void Labwork::labwork5_GPU() {
     cudaFree(share);
 }
 
-void Labwork::labwork6_GPU() {
+__global__ void binarization(uchar3* input, uchar3* output, int imageWidth, int imageHeight, int thresholdValue){
+    int tidx = threadIdx.x + blockIdx.x * blockDim.x;
+    int tidy = threadIdx.y + blockIdx.y * blockDim.y;
+    if(tidx >= imageWidth || tidy >= imageHeight) return;
+    int tid = tidx + tidy * imageWidth;
+    
+    unsigned char binary = (input[tid].x + input[tid].y + input[tid].z) / 3;
+    if (binary > thresholdValue){
+        binary = 255;
+    } else {
+        binary = 0;
+    }
+    output[tid].z = output[tid].y = output[tid].x = binary;
 }
+
+__global__ void brightness(uchar3* input, uchar3* output, int imageWidth, int imageHeight, int brightnessValue){
+    int tidx = threadIdx.x + blockIdx.x * blockDim.x;
+    int tidy = threadIdx.y + blockIdx.y * blockDim.y;
+    if(tidx >= imageWidth || tidy >= imageHeight) return;
+    int tid = tidx + tidy * imageWidth;
+    
+    unsigned char binary = (input[tid].x + input[tid].y + input[tid].z) / 3;
+    // unsigned char increase = binary + brightnessValue;
+    // if (increase > 255){
+    //     increase = 255;
+    // } else {
+    //     increase = 0;
+    // }
+    binary += brightnessValue;
+    output[tid].z = output[tid].y = output[tid].x = binary;
+
+}
+
+__global__ void blending(uchar3* input0, uchar3* input1, uchar3* output, int imageWidth, int imageHeight, float weightValue){
+    int tidx = threadIdx.x + blockIdx.x * blockDim.x;
+    int tidy = threadIdx.y + blockIdx.y * blockDim.y;
+    if(tidx >= imageWidth || tidy >= imageHeight) return;
+    int tid = tidx + tidy * imageWidth;
+
+    // unsigned char binary = (input0[tid].x + input0[tid].y + input0[tid].z) / 3;
+    // unsigned char binary2 = (input1[tid].x + input1[tid].y + input1[tid].z) / 3;
+    // binary = weightValue*binary + (1-weightValue)*binary2;
+    float binary = (input0[tid].x + input0[tid].y + input0[tid].z) / 3;
+    float binary1 = (input1[tid].x + input1[tid].y + input1[tid].z) / 3;
+    float totalbinary = (binary * weightValue) + binary1 * (1 - weightValue);
+
+    output[tid].z = output[tid].y = output[tid].x = totalbinary; 
+}
+
+void Labwork::labwork6_GPU() {
+
+    /*6A - BINARIZATION
+    int threshold;
+    printf("Enter the threshold value: ");
+    scanf("%d", &threshold);
+    */
+
+    /* 6B - BRIGHTNESS CONTROLL
+    int bright;
+    printf("Enter the threshold value: ");
+    scanf("%d", &bright);
+    */ 
+
+    /* 6C - BLENDING
+    char buffer[3];
+    printf("Enter the weight: ", buffer);
+    scanf("%s", buffer);
+    int weightValue = atoi(buffer);
+    */
+
+    // Calculate number of pixels
+    int pixelCount = inputImage->width * inputImage->height;
+
+    // // Allocate CUDA memory
+    uchar3 *devInput;
+    uchar3 *devOutput;
+    cudaMalloc(&devInput, pixelCount *sizeof(uchar3));
+    cudaMalloc(&devOutput, pixelCount *sizeof(uchar3));
+
+    // // Copy InputImage from CPU (host) to GPU (device)
+    cudaMemcpy(devInput, inputImage->buffer, pixelCount * sizeof(uchar3),cudaMemcpyHostToDevice);
+
+    // // Processing : launch the kernel
+    // // int blockSize = 1024;
+    // // int numBlock = pixelCount / blockSize;  
+    // // grayscale<<<numBlock, blockSize>>>(devInput, devOutput);
+    dim3 blockSize = dim3(32, 32);
+    // //dim3 gridSize = dim3(8, 8);
+    dim3 gridSize = dim3((inputImage->width + blockSize.x -1) / blockSize.x, (inputImage->height + blockSize.y -1) / blockSize.y);
+
+    // 6A - BINARIZATION
+    // binarization<<<gridSize, blockSize>>>(devInput, devOutput, inputImage->width, inputImage->height, threshold);
+    // 6B - BRIGHTNESS CONTROLL
+    //brightness<<<gridSize, blockSize>>>(devInput, devOutput, inputImage->width, inputImage->height, bright);
+    // 6C - BLENDING
+    //blending<<<gridSize, blockSize>>>(devInput, devInput, devOutput, inputImage->width, inputImage->height, weightValue);
+
+    // // Copy CUDA Memory from GPU to CPU
+    // // allocate memory for the output on the host
+    outputImage = static_cast<char *>(malloc(pixelCount * sizeof(uchar3)));  
+    cudaMemcpy(outputImage, devOutput, pixelCount * sizeof(uchar3),cudaMemcpyDeviceToHost);   
+
+    // // Cleaning
+    cudaFree(devInput);
+    cudaFree(devOutput);
+}
+
 
 void Labwork::labwork7_GPU() {
 }
