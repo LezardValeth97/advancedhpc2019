@@ -2,7 +2,6 @@
 #include <include/labwork.h>
 #include <cuda_runtime_api.h>
 #include <omp.h>
-#include <time.h>
 
 #define ACTIVE_THREADS 4
 
@@ -28,6 +27,7 @@ int main(int argc, char **argv) {
         inputFilename = std::string(argv[2]);
         labwork.loadInputImage(inputFilename);
     }
+
 
     printf("Starting labwork %d\n", lwNum);
     Timer timer;
@@ -55,9 +55,12 @@ int main(int argc, char **argv) {
             break;
         case 5:
             labwork.labwork5_CPU();
+            printf("labwork 5 CPU ellapsed %.1fms\n", lwNum, timer.getElapsedTimeInMilliSec());
             labwork.saveOutputImage("labwork5-cpu-out.jpg");
-            // labwork.labwork5_GPU();
-            // labwork.saveOutputImage("labwork5-gpu-out.jpg");
+            timer.start();
+            labwork.labwork5_GPU();
+            printf("labwork 5 GPU ellapsed %.1fms\n", lwNum, timer.getElapsedTimeInMilliSec());
+            labwork.saveOutputImage("labwork5-gpu-out.jpg");
             break;
         case 6:
             labwork.labwork6_GPU();
@@ -221,7 +224,6 @@ void Labwork::labwork4_GPU(){
     // Calculate number of pixels
     int pixelCount = inputImage->width * inputImage->height;
 
- 
     // // Allocate CUDA memory
     uchar3 *devInput;
     uchar3 *devOutput;
@@ -249,7 +251,6 @@ void Labwork::labwork4_GPU(){
     cudaFree(devInput);
     cudaFree(devOutput);
 }
-
 
 void Labwork::labwork5_CPU() {
     int kernel[] = {0, 0, 1, 2, 1, 0, 0,
@@ -290,39 +291,86 @@ void Labwork::labwork5_CPU() {
 
 }
 
+// write a blur kernel for shared memory
+__global__ void blur(uchar3* input, uchar3* output, int* kernel, int imageWidth, int imageHeight){
+    int tidx = threadIdx.x + blockIdx.x * blockDim.x;
+    int tidy = threadIdx.y + blockIdx.y * blockDim.y;
+    if(tidx >= imageWidth || tidy >= imageHeight) return;
+    int tid = tidx + tidy * imageWidth;
+
+    __shared__ int sKernel[49];
+    int localtid = threadIdx.x + threadIdx.y * blockDim.x;
+    if (localtid < 49){
+        sKernel[localtid] = kernel[localtid];
+    }
+    __syncthreads();
+
+    int sum = 0; // sum is for normalization
+    int constant = 0;
+    for(int y=-3; y < 3; y++){
+        for(int x=-3; x < 3; x++){
+            int rows = tidx + x;
+            int columns = tidy + y;
+            if( rows < 0 || rows >= imageWidth || columns < 0 || columns >= imageHeight) continue;
+            int tid = rows + columns * imageWidth;
+            unsigned char pixelValue = (input[tid].x + input[tid].y +input[tid].z) / 3;
+            int coefficient = sKernel[(y+3)*7+x+3];
+            sum += pixelValue*coefficient;
+            constant += coefficient;
+        }
+    }
+    sum /= constant;
+    // int positionOut = y*inputImage->width + x;
+    // if(positionOut < pixelCount){
+    //     outputImage[positionOut * 3] = outputImage[positionOut * 3 + 1] = outputImage[positionOut * 3 + 2] = sum;
+    // }
+    output[tid].z = output[tid].y = output[tid].x = sum;
+}
 
 void Labwork::labwork5_GPU() {
 
+    int kernel[] = {0,0,1,2,1,0,0,
+                    0,3,13,22,13,3,0,
+                    1,13,59,97,59,13,1,
+                    2,22,97,159,97,22,2,
+                    1,13,59,97,59,13,1,
+                    0,3,13,22,13,3,0,
+                    0,0,1,2,1,0,0};
+    int *share;
     // Calculate number of pixels
-    // int pixelCount = inputImage->width * inputImage->height;
+    int pixelCount = inputImage->width * inputImage->height;
+    
+    dim3 blockSize = dim3(32, 32);
+    //dim3 gridSize = dim3(8, 8);
+    dim3 gridSize = dim3((inputImage->width + blockSize.x -1) / blockSize.x, (inputImage->height + blockSize.y -1) / blockSize.y);
 
- 
-    // // // Allocate CUDA memory
-    // uchar3 *devInput;
-    // uchar3 *devOutput;
-    // cudaMalloc(&devInput, pixelCount *sizeof(uchar3));
-    // cudaMalloc(&devOutput, pixelCount *sizeof(uchar3));
+    // Allocate CUDA memory
+    uchar3 *devInput;
+    uchar3 *devOutput;
+    cudaMalloc(&devInput, pixelCount *sizeof(uchar3));
+    cudaMalloc(&devOutput, pixelCount *sizeof(uchar3));
+    cudaMalloc(&share, sizeof(kernel));
+    // allocate memory for the output on the host
+    outputImage = static_cast<char *>(malloc(pixelCount * sizeof(uchar3)));  
 
-    // // // Copy InputImage from CPU (host) to GPU (device)
-    // cudaMemcpy(devInput, inputImage->buffer, pixelCount * sizeof(uchar3),cudaMemcpyHostToDevice);
+    // Copy InputImage from CPU (host) to GPU (device)
+    cudaMemcpy(devInput, inputImage->buffer, pixelCount * sizeof(uchar3),cudaMemcpyHostToDevice);
 
-    // // // Processing : launch the kernel
-    // // // int blockSize = 1024;
-    // // // int numBlock = pixelCount / blockSize;  
-    // // // grayscale<<<numBlock, blockSize>>>(devInput, devOutput);
-    // dim3 blockSize = dim3(32, 32);
-    // // //dim3 gridSize = dim3(8, 8);
-    // dim3 gridSize = dim3((inputImage->width + blockSize.x -1) / blockSize.x, (inputImage->height + blockSize.y -1) / blockSize.y);
-    // grayscaleVer2D<<<gridSize, blockSize>>>(devInput, devOutput, inputImage->width, inputImage->height);
+    // Copy Kernel into shared memory
+    cudaMemcpy(share, kernel, sizeof(kernel), cudaMemcpyHostToDevice);
 
-    // // // Copy CUDA Memory from GPU to CPU
-    // // // allocate memory for the output on the host
-    // outputImage = static_cast<char *>(malloc(pixelCount * sizeof(uchar3)));  
-    // cudaMemcpy(outputImage, devOutput, pixelCount * sizeof(uchar3),cudaMemcpyDeviceToHost);   
+    // Processing : launch the kernel
+    // int blockSize = 1024;
+    // int numBlock = pixelCount / blockSize;  
+    blur<<<gridSize, blockSize>>>(devInput, devOutput, share, inputImage->width, inputImage->height);
 
-    // // // Cleaning
-    // cudaFree(devInput);
-    // cudaFree(devOutput);
+    // Copy CUDA Memory from GPU to CPU
+    cudaMemcpy(outputImage, devOutput, pixelCount * sizeof(uchar3),cudaMemcpyDeviceToHost);   
+
+    // // Cleaning
+    cudaFree(devInput);
+    cudaFree(devOutput);
+    cudaFree(share);
 }
 
 void Labwork::labwork6_GPU() {
