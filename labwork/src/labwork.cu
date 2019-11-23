@@ -525,9 +525,9 @@ __global__ void RGB2HSV(uchar3* input, hsv output, int imageWidth, int imageHeig
     if(tidx >= imageWidth || tidy >= imageHeight) return;
     int tid = tidx + tidy * imageWidth;
 
-    float r = (float)input[tid].x/255;
-    float g = (float)input[tid].y/255;
-    float b = (float)input[tid].z/255;
+    float r = (float)input[tid].x/255.0;
+    float g = (float)input[tid].y/255.0;
+    float b = (float)input[tid].z/255.0;
 
     float Max = max(r, max(g,b));
     float Min = min(r, min(g,b));
@@ -655,10 +655,105 @@ void Labwork::labwork8_GPU() {
 }
 
 void Labwork::labwork9_GPU() {
+}
 
+__global__ void kuwahara(uchar3* input, uchar3* output, int imageWidth, int imageHeight, int windowSize){
+    unsigned int tidx = threadIdx.x + blockIdx.x * blockDim.x;
+    unsigned int tidy = threadIdx.y + blockIdx.y * blockDim.y;
+    if(tidx >= imageWidth || tidy >= imageHeight) return;
+    int tid = tidx + tidy * imageWidth;
+
+    double window[4] = {0.0};
+    double SD[4] = {0.0};
+    int meanRGB[4][3] = {0};
+    int pxCount[4] = {0};
+    int windowPosition;
+
+    for(int x = 1 - windowSize; x <= windowSize - 1; x++){
+        for(int y = 1 - windowSize; y <= windowSize - 1; y++){
+            int rows = tidx + x;
+            int columns = tidy + y;
+            if( rows < 0 || rows >= imageWidth || columns < 0 || columns >= imageHeight) continue;
+            int positionOut = rows + columns * imageWidth;
+
+            int red = input[positionOut].x;
+            int green = input[positionOut].y;
+            int blue = input[positionOut].z;
+
+            if (x <= 0 && y >= 0){
+                windowPosition = 0; // top left
+            }
+
+            if (x >= 0 && y >= 0){
+                windowPosition = 1; //top right
+            }
+
+            if (x <= 0 && y <= 0){
+                windowPosition = 2; // bottom left
+            }
+
+            if (x >= 0 && y <= 0){
+                windowPosition = 3; // bottom right
+            }
+
+            meanRGB[windowPosition][0] += red;
+            meanRGB[windowPosition][1] += green;
+            meanRGB[windowPosition][2] += blue;
+
+            window[windowPosition] += max(red, max(green,blue));
+            pxCount[windowPosition]++;
+
+            SD[windowPosition] += pow((max(red, max(green,blue)) - window[windowPosition]),2.0);
+        }
+    }
+
+    for (int i = 0; i < 4; i++){
+        SD[i] = sqrt(SD[i] / (pxCount[i])); 
+        window[i] /= pxCount[i];
+        for(int j = 0; j < 3; j++){ 
+            meanRGB[i][j] /= pxCount[i];
+        }  
+    } 
+
+    double minSD = min(SD[0], min( SD[1], min(SD[2], SD[3])));
+    if (minSD == SD[0])  tidx=0;
+    else if (minSD == SD[1]) tidx=1;
+    else if (minSD == SD[2]) tidx=2;
+    else tidx=3;
+    
+    output[tid].x = meanRGB[tidx][0];
+    output[tid].y = meanRGB[tidx][1];
+    output[tid].z = meanRGB[tidx][2]; 
 }
 
 void Labwork::labwork10_GPU(){
-}
+    // Calculate number of pixels
+    int pixelCount = inputImage->width * inputImage->height;
+    int windowSize = 32;
 
-    
+    // // Allocate CUDA memory
+    uchar3 *devInput;
+    uchar3 *devOutput;
+    cudaMalloc(&devInput, pixelCount *sizeof(uchar3));
+    cudaMalloc(&devOutput, pixelCount *sizeof(uchar3));
+
+    // // Copy InputImage from CPU (host) to GPU (device)
+    cudaMemcpy(devInput, inputImage->buffer, pixelCount * sizeof(uchar3),cudaMemcpyHostToDevice);
+
+    // // Processing : launch the kernel
+    // // int blockSize = 1024;
+    // // int numBlock = pixelCount / blockSize;  
+    // // grayscale<<<numBlock, blockSize>>>(devInput, devOutput);
+    dim3 blockSize = dim3(32, 32);
+    // //dim3 gridSize = dim3(8, 8);
+    dim3 gridSize = dim3((inputImage->width + blockSize.x -1) / blockSize.x, (inputImage->height + blockSize.y -1) / blockSize.y);
+    kuwahara<<<gridSize, blockSize>>>(devInput, devOutput, inputImage->width, inputImage->height, windowSize);
+    // // Copy CUDA Memory from GPU to CPU
+    // // allocate memory for the output on the host
+    outputImage = static_cast<char *>(malloc(pixelCount * sizeof(uchar3)));  
+    cudaMemcpy(outputImage, devOutput, pixelCount * sizeof(uchar3),cudaMemcpyDeviceToHost);   
+
+    // // Cleaning
+    cudaFree(devInput);
+    cudaFree(devOutput);
+}
