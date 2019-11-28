@@ -1,0 +1,3 @@
+/storage/vietkq/AdvancedHPC2/Day2/Student/CMakeFiles/rebuild_cache.dir
+/storage/vietkq/AdvancedHPC2/Day2/Student/CMakeFiles/Exercise1.dir
+/storage/vietkq/AdvancedHPC2/Day2/Student/CMakeFiles/edit_cache.dir

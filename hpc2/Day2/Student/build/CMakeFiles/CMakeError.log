@@ -1,0 +1,51 @@
+Determining if the pthread_create exist failed with the following output:
+Change Dir: /storage/vietkq/AdvancedHPC2/Day2/Student/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/make" "cmTC_15cc2/fast"
+/usr/bin/make -f CMakeFiles/cmTC_15cc2.dir/build.make CMakeFiles/cmTC_15cc2.dir/build
+make[1]: Entering directory '/storage/vietkq/AdvancedHPC2/Day2/Student/CMakeFiles/CMakeTmp'
+Building CXX object CMakeFiles/cmTC_15cc2.dir/CheckSymbolExists.cxx.o
+/usr/bin/g++-6     -o CMakeFiles/cmTC_15cc2.dir/CheckSymbolExists.cxx.o -c /storage/vietkq/AdvancedHPC2/Day2/Student/CMakeFiles/CMakeTmp/CheckSymbolExists.cxx
+Linking CXX executable cmTC_15cc2
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_15cc2.dir/link.txt --verbose=1
+/usr/bin/g++-6        -rdynamic CMakeFiles/cmTC_15cc2.dir/CheckSymbolExists.cxx.o  -o cmTC_15cc2 
+/usr/bin/ld: CMakeFiles/cmTC_15cc2.dir/CheckSymbolExists.cxx.o: in function `main':
+CheckSymbolExists.cxx:(.text+0x1b): undefined reference to `pthread_create'
+collect2: error: ld returned 1 exit status
+make[1]: *** [CMakeFiles/cmTC_15cc2.dir/build.make:87: cmTC_15cc2] Error 1
+make[1]: Leaving directory '/storage/vietkq/AdvancedHPC2/Day2/Student/CMakeFiles/CMakeTmp'
+make: *** [Makefile:121: cmTC_15cc2/fast] Error 2
+
+File /storage/vietkq/AdvancedHPC2/Day2/Student/CMakeFiles/CMakeTmp/CheckSymbolExists.cxx:
+/* */
+#include <pthread.h>
+
+int main(int argc, char** argv)
+{
+  (void)argv;
+#ifndef pthread_create
+  return ((int*)(&pthread_create))[argc];
+#else
+  (void)argc;
+  return 0;
+#endif
+}
+
+Determining if the function pthread_create exists in the pthreads failed with the following output:
+Change Dir: /storage/vietkq/AdvancedHPC2/Day2/Student/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/make" "cmTC_b3a4d/fast"
+/usr/bin/make -f CMakeFiles/cmTC_b3a4d.dir/build.make CMakeFiles/cmTC_b3a4d.dir/build
+make[1]: Entering directory '/storage/vietkq/AdvancedHPC2/Day2/Student/CMakeFiles/CMakeTmp'
+Building CXX object CMakeFiles/cmTC_b3a4d.dir/CheckFunctionExists.cxx.o
+/usr/bin/g++-6    -DCHECK_FUNCTION_EXISTS=pthread_create   -o CMakeFiles/cmTC_b3a4d.dir/CheckFunctionExists.cxx.o -c /storage/vietkq/AdvancedHPC2/Day2/Student/CMakeFiles/CheckLibraryExists/CheckFunctionExists.cxx
+Linking CXX executable cmTC_b3a4d
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_b3a4d.dir/link.txt --verbose=1
+/usr/bin/g++-6    -DCHECK_FUNCTION_EXISTS=pthread_create    -rdynamic CMakeFiles/cmTC_b3a4d.dir/CheckFunctionExists.cxx.o  -o cmTC_b3a4d -lpthreads 
+/usr/bin/ld: cannot find -lpthreads
+collect2: error: ld returned 1 exit status
+make[1]: *** [CMakeFiles/cmTC_b3a4d.dir/build.make:87: cmTC_b3a4d] Error 1
+make[1]: Leaving directory '/storage/vietkq/AdvancedHPC2/Day2/Student/CMakeFiles/CMakeTmp'
+make: *** [Makefile:121: cmTC_b3a4d/fast] Error 2
+
+
