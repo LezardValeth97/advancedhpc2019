@@ -630,10 +630,10 @@ void Labwork::labwork8_GPU() {
     // // Copy InputImage from CPU (host) to GPU (device)
     cudaMemcpy(devInput, inputImage->buffer, pixelCount * sizeof(uchar3),cudaMemcpyHostToDevice);
 
-    // // Processing : launch the kernel
-    // // int blockSize = 1024;
-    // // int numBlock = pixelCount / blockSize;  
-    // // grayscale<<<numBlock, blockSize>>>(devInput, devOutput);
+    // Processing : launch the kernel
+    // int blockSize = 1024;
+    // int numBlock = pixelCount / blockSize;  
+    // grayscale<<<numBlock, blockSize>>>(devInput, devOutput);
     dim3 blockSize = dim3(32, 32);
     // //dim3 gridSize = dim3(8, 8);
     dim3 gridSize = dim3((inputImage->width + blockSize.x -1) / blockSize.x, (inputImage->height + blockSize.y -1) / blockSize.y);
@@ -641,12 +641,12 @@ void Labwork::labwork8_GPU() {
     RGB2HSV<<<gridSize, blockSize>>>(devInput, devHSV, inputImage->width, inputImage->height);
     HSV2RGB<<<gridSize, blockSize>>>(devHSV, devOutput, inputImage->width, inputImage->height);
 
-    // // Copy CUDA Memory from GPU to CPU
-    // // allocate memory for the output on the host
+    // Copy CUDA Memory from GPU to CPU
+    // allocate memory for the output on the host
     outputImage = static_cast<char *>(malloc(pixelCount * sizeof(uchar3)));  
     cudaMemcpy(outputImage, devOutput, pixelCount * sizeof(uchar3),cudaMemcpyDeviceToHost);   
 
-    // // Cleaning
+    // Cleaning
     cudaFree(devInput);
     cudaFree(devOutput);
     cudaFree(devHSV.h);
@@ -731,29 +731,38 @@ void Labwork::labwork10_GPU(){
     int pixelCount = inputImage->width * inputImage->height;
     int windowSize = 32;
 
-    // // Allocate CUDA memory
+    // Allocate CUDA memory
     uchar3 *devInput;
     uchar3 *devOutput;
     cudaMalloc(&devInput, pixelCount *sizeof(uchar3));
     cudaMalloc(&devOutput, pixelCount *sizeof(uchar3));
 
-    // // Copy InputImage from CPU (host) to GPU (device)
+    // Copy InputImage from CPU (host) to GPU (device)
     cudaMemcpy(devInput, inputImage->buffer, pixelCount * sizeof(uchar3),cudaMemcpyHostToDevice);
 
-    // // Processing : launch the kernel
-    // // int blockSize = 1024;
-    // // int numBlock = pixelCount / blockSize;  
-    // // grayscale<<<numBlock, blockSize>>>(devInput, devOutput);
+    // Processing : launch the kernel
+    // int blockSize = 1024;
+    // int numBlock = pixelCount / blockSize;  
+    // grayscale<<<numBlock, blockSize>>>(devInput, devOutput);
     dim3 blockSize = dim3(32, 32);
-    // //dim3 gridSize = dim3(8, 8);
+    //dim3 gridSize = dim3(8, 8);
     dim3 gridSize = dim3((inputImage->width + blockSize.x -1) / blockSize.x, (inputImage->height + blockSize.y -1) / blockSize.y);
     kuwahara<<<gridSize, blockSize>>>(devInput, devOutput, inputImage->width, inputImage->height, windowSize);
-    // // Copy CUDA Memory from GPU to CPU
-    // // allocate memory for the output on the host
+    // Copy CUDA Memory from GPU to CPU
+    // allocate memory for the output on the host
     outputImage = static_cast<char *>(malloc(pixelCount * sizeof(uchar3)));  
     cudaMemcpy(outputImage, devOutput, pixelCount * sizeof(uchar3),cudaMemcpyDeviceToHost);   
 
-    // // Cleaning
+    // Cleaning
     cudaFree(devInput);
     cudaFree(devOutput);
+
+__global__ void sobelGPU(uchar3 *input, uchar3 *output, unsigned char *buffer, int height, int width){
+    int tidx = threadIdx.x + blockIdx.x * blockDim.x;
+    int tidy = threadIdx.y + blockIdx.y * blockDim.y;
+    if (tidx >= width || tidy >= height) return;
+
+    int Gx = -buffer[width * (x-1) + (y+1)]
+            -2 * buffer[width*(x-1) + (y+1)]
+            -buffer
 }

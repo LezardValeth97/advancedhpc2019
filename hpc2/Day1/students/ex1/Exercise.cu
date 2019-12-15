@@ -9,16 +9,6 @@
 #include "include/chronoGPU.hpp"
 using namespace std;
 
-// display a vector
-// void display(thrust::device_vector <float>& U, const string& name){
-// 	//copy the data from GPU memory to CPU memory
-// 	thrust::host_vector<float> V = U;
-// 	// display each values
-// 	for(int i=0; i<V.size(); ++i){
-// 		cout<<name<<"[" << i << "] " <<V[i] << endl;
-// 	}
-// }
-
 // function that adds two elements and return a new one
 class AdditionFunctor : public thrust::binary_function<float,float,float>{
 public:
@@ -26,25 +16,6 @@ public:
 		return x + y;
 	}
 };
-
-// void doAddtion(unsigned workSize){
-// 	thrust::device_vector<float> result(workSize);
-// 	thrust::device_vector<float> U(workSize);
-// 	thrust::device_vector<float> V(workSize);
-
-// 	// initilization of two given arrays
-// 	// fill U with 1,2, 3 .... U.size()
-// 	thrust::sequence(U.begin(), U.end(), 1.f);
-
-// 	// fill V with 4,4, .... 4
-// 	thrust::fill(V.begin(), V.end(), 4.f);
-
-// 	// do a MAP (one-to-one operation)
-// 	thrust::transform(U.begin(), U.end(), V.begin(), result.begin(), AdditionFunctor());
-
-// 	// display the result (if not too big)
-// 	if (workSize < 128) display(result, "result");
-// }
 
 void Exercise::Question1(const thrust::host_vector<int>& A,
 						const thrust::host_vector<int>& B, 
